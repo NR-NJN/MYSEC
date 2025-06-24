@@ -8,7 +8,7 @@ This project is a Python-based network tool that performs two main functions:
 
 1.  **Clone the repository:**
     ```
-    git clone 
+    git clone https://github.com/NR-NJN/MYSEC.git
     ```
 
 2.  **Create a Python virtual environment:**
