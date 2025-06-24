@@ -24,7 +24,7 @@ This project is a Python-based network tool that performs two main functions:
     - Add the name of the network interface you want to sniff.
     
     ```
-    INTERFACE_NAME="Your_Interface_Name_Here"
+    INTERFACE_NAME=<interface name>
     ```
 
 ## Usage
