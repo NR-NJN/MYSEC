@@ -68,7 +68,7 @@ def main():
         
         sniff(iface=INTERFACE_TO_SNIFF, prn=packet_callback, store=0, stop_filter=lambda p: stop_event.is_set())
     except KeyboardInterrupt:
-        print("\n[!] Ctrl+C detected. Shutting down gracefully...")
+        print("\nShutting down gracefully")
     finally:
         
         stop_event.set()
@@ -76,7 +76,7 @@ def main():
         print("[+] Sniffer and writer threads have been stopped.")
         
         if captured_packets:
-            print(f"[Main Thread] Performing final write of {len(captured_packets)} packets...")
+            print(f"[Main Thread] Performing final write of {len(captured_packets)} packets")
             wrpcap(CAPTURE_FILENAME, captured_packets, append=True)
         print("[+] Shutdown complete.")
 
