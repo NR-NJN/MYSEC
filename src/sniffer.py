@@ -5,54 +5,68 @@ from dotenv import load_dotenv
 from scapy.all import sniff, IP, TCP, wrpcap, conf
 from collections import defaultdict
 
-conf.use_npcap = True
-
-load_dotenv()
  
+conf.use_npcap = True
+load_dotenv()
 ALLOWLIST_IPS = os.getenv("ALLOWLIST_IPS", "").split(',')
-
 packet_lock = threading.Lock()
 captured_packets = []
-stop_event = threading.Event() 
-scan_tracker = defaultdict(list)
-alerted_hosts = set()
-
+stop_event = threading.Event()
+port_scan_tracker = defaultdict(list)
+port_scan_alerted = set()
+PORT_SCAN_TIME_WINDOW = 20
+PORT_SCAN_RATE_THRESHOLD = 10
  
-TIME_WINDOW_SECONDS = 20   
-RATE_THRESHOLD = 10        
+ddos_tracker = defaultdict(list)
+ddos_alerted = set()
+DDOS_TIME_WINDOW = 10   
+DDOS_PACKET_THRESHOLD = 500  
 
 def packet_callback(packet):
-    
-    if IP in packet and TCP in packet:
+     
+    if IP in packet:  
         ip_src = packet[IP].src
-        dport = packet[TCP].dport
         current_time = time.time()
 
          
         if ip_src in ALLOWLIST_IPS:
-            return   
-         
-        if not any(port == dport for port, ts in scan_tracker[ip_src]):
-            scan_tracker[ip_src].append((dport, current_time))
+            return
 
-        scan_tracker[ip_src] = [
-            (port, ts) for port, ts in scan_tracker[ip_src]
-            if current_time - ts <= TIME_WINDOW_SECONDS
-        ]
          
-        if len(scan_tracker[ip_src]) > RATE_THRESHOLD and ip_src not in alerted_hosts:
-            scanned_ports_list = sorted([p for p, ts in scan_tracker[ip_src]])
-            print(f"!!! PORT SCAN ALERT !!!")
-            print(f"Source IP: {ip_src} scanned {len(scanned_ports_list)} ports in the last {TIME_WINDOW_SECONDS} seconds.")
-            print(f"Ports: {scanned_ports_list}")
-            print("-" * 20)
-            alerted_hosts.add(ip_src)            
-     
+        ddos_tracker[ip_src].append(current_time)
+        ddos_tracker[ip_src] = [ts for ts in ddos_tracker[ip_src] if current_time - ts <= DDOS_TIME_WINDOW]
+        
+        if len(ddos_tracker[ip_src]) > DDOS_PACKET_THRESHOLD and ip_src not in ddos_alerted:
+            print("\n" + "="*40)
+            print(f"!!! DDOS ATTACK DETECTED !!!")
+            print(f"Source IP: {ip_src} sent {len(ddos_tracker[ip_src])} packets in the last {DDOS_TIME_WINDOW} seconds.")
+            print("="*40 + "\n")
+            ddos_alerted.add(ip_src)
+
+         
+        if TCP in packet:
+            dport = packet[TCP].dport
+            if not any(port == dport for port, ts in port_scan_tracker[ip_src]):
+                port_scan_tracker[ip_src].append((dport, current_time))
+
+            port_scan_tracker[ip_src] = [
+                (port, ts) for port, ts in port_scan_tracker[ip_src]
+                if current_time - ts <= PORT_SCAN_TIME_WINDOW
+            ]
+            
+            if len(port_scan_tracker[ip_src]) > PORT_SCAN_RATE_THRESHOLD and ip_src not in port_scan_alerted:
+                scanned_ports_list = sorted([p for p, ts in port_scan_tracker[ip_src]])
+                print("\n" + "="*40)
+                print(f"!!! PORT SCAN ALERT !!!")
+                print(f"Source IP: {ip_src} scanned {len(scanned_ports_list)} ports in the last {PORT_SCAN_TIME_WINDOW} seconds.")
+                print(f"Ports: {scanned_ports_list}")
+                print("="*40 + "\n")
+                port_scan_alerted.add(ip_src)
+
     with packet_lock:
         captured_packets.append(packet)
 
 def pcap_writer(filename, interval):
-     
     print(f"[Writer Thread] Started. Will write to '{filename}' every {interval} seconds.")
     while not stop_event.is_set():
         stop_event.wait(interval)
