@@ -25,6 +25,7 @@ This project is a Python-based network tool that performs two main functions:
     
     ```
     INTERFACE_NAME=<interface name>
+    ALLOWLIST_IPS= <ips>
     ```
 
 ## Usage
