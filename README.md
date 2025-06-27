@@ -30,5 +30,5 @@ This project is a Python-based network tool that performs two main functions:
 
 ## Usage
 
-Run the script with administrative/root privileges
+Run the script sniffer.py with administrative/root privileges
 
